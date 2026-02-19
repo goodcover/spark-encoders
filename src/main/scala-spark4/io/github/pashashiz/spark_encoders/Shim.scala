@@ -5,7 +5,7 @@ import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 
 import scala.annotation.nowarn
 import org.apache.spark.sql.catalyst.encoders.{AgnosticEncoder, AgnosticExpressionPathEncoder, ExpressionEncoder}
-import org.apache.spark.sql.catalyst.expressions.objects.StaticInvoke
+import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, StaticInvoke}
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, Expression}
 import org.apache.spark.sql.types.{DataType, StructType}
 
@@ -49,6 +49,24 @@ object Shim {
       closure,
       Boolean.box(checkSerializable),
       Boolean.box(cleanTransitively))
+  }
+
+  /** Shim for AssertNotNull that may include walked type path in newer Spark builds. */
+  def assertNotNull(child: Expression, path: Seq[String]): Expression = {
+    val constructors = classOf[AssertNotNull].getConstructors
+    constructors
+      .find(_.getParameterCount >= 2)
+      .map { ctor =>
+        ctor.newInstance(child, path).asInstanceOf[Expression]
+      }
+      .getOrElse {
+        constructors
+          .find(_.getParameterCount == 1)
+          .map { ctor =>
+            ctor.newInstance(child).asInstanceOf[Expression]
+          }
+          .getOrElse(throw new RuntimeException("Unsupported AssertNotNull constructor shape"))
+      }
   }
 
   def expressionEncoder[A](encoder: Encoder[A]): ExpressionEncoder[A] = {

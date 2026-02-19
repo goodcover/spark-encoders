@@ -1,7 +1,7 @@
 package io.github.pashashiz.spark_encoders
 
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, CatalystToExternalMap, ExternalMapToCatalyst, UnresolvedCatalystToExternalMap}
+import org.apache.spark.sql.catalyst.expressions.objects.{CatalystToExternalMap, ExternalMapToCatalyst, UnresolvedCatalystToExternalMap}
 import org.apache.spark.sql.types.{DataType, MapType}
 
 import scala.collection.{immutable, mutable}
@@ -25,7 +25,7 @@ case class MapEncoder[C[_, _] <: collection.Map[_, _], A, B]()(implicit
       } else {
         // if element cannot be nullable (not wrapped into option)
         // we want to check it and add nullable=false into catalyst (just like we do in product)
-        AssertNotNull(valueEncoder.toCatalyst(path))
+        Shim.assertNotNull(valueEncoder.toCatalyst(path), Seq("value"))
       }
     ExternalMapToCatalyst(
       inputMap = path,

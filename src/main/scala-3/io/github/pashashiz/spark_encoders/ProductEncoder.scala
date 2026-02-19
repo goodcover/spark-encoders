@@ -1,7 +1,7 @@
 package io.github.pashashiz.spark_encoders
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
-import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, Invoke, NewInstance}
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance}
 import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, Expression, If, IsNull, KnownNotNull, Literal, UpCast}
 import org.apache.spark.sql.types.{DataType, Metadata, StructField, StructType}
 import io.github.pashashiz.spark_encoders.expressions.ObjectInstance
@@ -65,7 +65,7 @@ class CaseClassEncoder[A: ClassTag](
           returnNullable = true)
         // we do not accept null values in Product types,
         // nullable fields should use Option instead
-        encoder.toCatalyst(AssertNotNull(fieldPath))
+        encoder.toCatalyst(Shim.assertNotNull(fieldPath, Seq(label)))
     }
     val exprs = nameExprs.zip(valueExprs).flatMap {
       case (nameExpr, valueExpr) => nameExpr :: valueExpr :: Nil
@@ -85,7 +85,7 @@ class CaseClassEncoder[A: ClassTag](
         // we do not accept null values in Product types,
         // nullable fields should use Option instead
         // Use fromCatalystForField to handle value class erasure in constructor args
-        AssertNotNull(encoder.fromCatalystForField(paramExpr))
+        Shim.assertNotNull(encoder.fromCatalystForField(paramExpr), Seq(label))
     }
     val newExpr = NewInstance(
       cls = runtimeClass,

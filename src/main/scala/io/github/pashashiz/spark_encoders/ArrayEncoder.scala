@@ -2,7 +2,7 @@ package io.github.pashashiz.spark_encoders
 
 import io.github.pashashiz.spark_encoders.Shim.staticInvoke
 import org.apache.spark.sql.catalyst.expressions.codegen.CodeGenerator
-import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, Invoke, MapObjects}
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, MapObjects}
 import org.apache.spark.sql.catalyst.expressions.{Expression, UnsafeArrayData}
 import org.apache.spark.sql.types._
 
@@ -62,7 +62,7 @@ case class ObjectArrayEncoder[A]()(implicit
       } else {
         // if element cannot be nullable (not wrapped into option)
         // we want to check it and add nullable=false into catalyst (just like we do in product)
-        AssertNotNull(elementEncoder.toCatalyst(path))
+        Shim.assertNotNull(elementEncoder.toCatalyst(path), Seq("element"))
       }
     MapObjects(
       function = mapElement,
