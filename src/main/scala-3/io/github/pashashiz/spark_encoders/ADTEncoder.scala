@@ -1,7 +1,6 @@
 package io.github.pashashiz.spark_encoders
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
-import org.apache.spark.sql.catalyst.expressions.objects.AssertNotNull
 import org.apache.spark.sql.catalyst.expressions.{CaseWhen, CreateNamedStruct, EqualTo, Expression, If, IsNull, Literal, UpCast}
 import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
 import io.github.pashashiz.spark_encoders.expressions.{AsInstanceOf, ClassSimpleName}
@@ -14,7 +13,7 @@ class ADTEnumEncoder[A: ClassTag](typeNames: List[String], encoders: => List[Typ
   override def catalystRepr: DataType = StringType
 
   override def toCatalyst(path: Expression): Expression =
-    AssertNotNull(ClassSimpleName(path))
+    Shim.assertNotNull(ClassSimpleName(path), Seq("_type"))
 
   override def fromCatalyst(path: Expression): Expression = {
     val cases = typeNames.zip(encoders)
@@ -66,7 +65,7 @@ class ADTClassEncoder[A: ClassTag](typeNames: List[String], encoders: => List[Ty
   }
 
   override def toCatalyst(path: Expression): Expression = {
-    val classSimpleName = AssertNotNull(ClassSimpleName(path))
+    val classSimpleName = Shim.assertNotNull(ClassSimpleName(path), Seq("_type"))
     val groups = typeNames.zip(encoders)
       .flatMap {
         case (typeName, encoder) =>
@@ -96,7 +95,7 @@ class ADTClassEncoder[A: ClassTag](typeNames: List[String], encoders: => List[Ty
         }
         val caseExpr = CaseWhen(cases)
         val required = candidates.count(!_._3.nullable) == typeNames.size
-        val caseExprWithNullability = if (required) AssertNotNull(caseExpr) else caseExpr
+        val caseExprWithNullability = if (required) Shim.assertNotNull(caseExpr, Seq(fieldName)) else caseExpr
         List(Literal(fieldName), caseExprWithNullability)
     }
     val createExpr = CreateNamedStruct(Literal("_type") +: classSimpleName +: fields)

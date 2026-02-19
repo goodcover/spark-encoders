@@ -1,7 +1,7 @@
 package io.github.pashashiz.spark_encoders
 
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, MapObjects, NewInstance}
+import org.apache.spark.sql.catalyst.expressions.objects.{MapObjects, NewInstance}
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types.{ArrayType, DataType}
 
@@ -34,7 +34,7 @@ case class SeqEncoder[C[_] <: collection.Seq[_], A]()(implicit
         } else {
           // if element cannot be nullable (not wrapped into option)
           // we want to check it and add nullable=false into catalyst (just like we do in product)
-          AssertNotNull(elementEncoder.toCatalyst(path))
+          Shim.assertNotNull(elementEncoder.toCatalyst(path), Seq("element"))
         }
       // MapObjects produces ArrayData, for non-primitive that is GenericArrayData
       // UnsafeArrayData is used for primitive arrays, check to see if we can use that for Seq too

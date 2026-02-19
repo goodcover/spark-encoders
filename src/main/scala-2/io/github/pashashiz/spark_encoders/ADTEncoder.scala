@@ -3,7 +3,6 @@ package io.github.pashashiz.spark_encoders
 import io.github.pashashiz.spark_encoders.expressions.{AsInstanceOf, ClassSimpleName}
 import magnolia1.{SealedTrait, Subtype}
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
-import org.apache.spark.sql.catalyst.expressions.objects.AssertNotNull
 import org.apache.spark.sql.catalyst.expressions.{CaseWhen, CreateNamedStruct, EqualTo, Expression, If, IsNull, Literal, UpCast}
 import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
 
@@ -22,7 +21,7 @@ class ADTEnumEncoder[A: ClassTag](ctx: SealedTrait[TypedEncoder, A]) extends Typ
   override def catalystRepr: DataType = StringType
 
   override def toCatalyst(path: Expression): Expression =
-    AssertNotNull(ClassSimpleName(path))
+    Shim.assertNotNull(ClassSimpleName(path), Seq("_type"))
 
   override def fromCatalyst(path: Expression): Expression = {
     val cases = ctx.subtypes
@@ -72,7 +71,7 @@ class ADTClassEncoder[A: ClassTag](ctx: SealedTrait[TypedEncoder, A]) extends Ty
   }
 
   override def toCatalyst(path: Expression): Expression = {
-    val classSimpleName = AssertNotNull(ClassSimpleName(path))
+    val classSimpleName = Shim.assertNotNull(ClassSimpleName(path), Seq("_type"))
     val groups = ctx.subtypes
       .flatMap { subtype =>
         val fields = extractStructFields(subtype)
@@ -101,7 +100,7 @@ class ADTClassEncoder[A: ClassTag](ctx: SealedTrait[TypedEncoder, A]) extends Ty
         }
         val caseExpr = CaseWhen(cases)
         val required = candidates.count(!_._3.nullable) == ctx.subtypes.size
-        val caseExprWithNullability = if (required) AssertNotNull(caseExpr) else caseExpr
+        val caseExprWithNullability = if (required) Shim.assertNotNull(caseExpr, Seq(fieldName)) else caseExpr
         List(Literal(fieldName), caseExprWithNullability)
     }
     val createExpr = CreateNamedStruct(Literal("_type") +: classSimpleName +: fields)
