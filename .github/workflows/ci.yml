@@ -3,6 +3,8 @@ name: Spark Encoders
 on:
   pull_request:
     branches: [ "publish", "main" ]
+  push:
+    branches: [ "publish", "main" ]
 
 permissions:
   contents: read
