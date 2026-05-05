@@ -5,20 +5,24 @@ import magnolia1.CaseClass
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance}
 import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, Expression, If, IsNull, KnownNotNull, Literal, UpCast}
-import org.apache.spark.sql.types.{DataType, Metadata, ObjectType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, MapType, Metadata, ObjectType, StructField, StructType}
 
 import scala.reflect.ClassTag
 
 object ProductEncoder {
 
-  /** Recursively make all nested struct fields nullable for UpCast compatibility.
+  /** Recursively relax nested nullability for UpCast compatibility.
     * Spark stores nested structs as nullable by default, so when reading back,
-    * we need the target schema to accept nullable struct fields. */
+    * we need the target schema to accept nullable fields. */
   def makeNullable(dt: DataType): DataType = dt match {
     case st: StructType =>
       StructType(st.fields.map { f =>
         f.copy(dataType = makeNullable(f.dataType), nullable = true)
       })
+    case ArrayType(elementType, _) =>
+      ArrayType(makeNullable(elementType), containsNull = true)
+    case MapType(keyType, valueType, _) =>
+      MapType(makeNullable(keyType), makeNullable(valueType), valueContainsNull = true)
     case other => other
   }
 

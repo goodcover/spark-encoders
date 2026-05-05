@@ -1,6 +1,7 @@
 package io.github.pashashiz.spark_encoders
 
 import io.github.pashashiz.spark_encoders.AnyValEncoderSpec._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 class AnyValEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers
@@ -120,6 +121,31 @@ class AnyValEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers
 
         Test("1", SimpleTypeStr("Hello!")) should haveTypedEncoder[Test[SimpleTypeStr]]()
       }
+
+      "read nullable nested array structs with AnyVal fields" in {
+        val sourceSchema = StructType(Seq(
+          StructField("key", StringType, nullable = false),
+          StructField(
+            "updates",
+            ArrayType(
+              StructType(Seq(
+                StructField("lineIndex", IntegerType, nullable = false),
+                StructField("sourceBillId", StringType, nullable = true))),
+              containsNull = false),
+            nullable = false)))
+
+        val rows = spark.sparkContext.parallelize(Seq(
+          Row("policy-1", Seq(Row(0, "bill-1"), Row(1, "bill-2")))))
+
+        val df = spark.createDataFrame(rows, sourceSchema)
+        val result = df.as[NestedRepairGroup[Foo]].collect().toSeq
+
+        result shouldBe Seq(NestedRepairGroup(
+          Foo("policy-1"),
+          List(
+            NestedLineUpdate(0, Foo("bill-1")),
+            NestedLineUpdate(1, Foo("bill-2")))))
+      }
     }
   }
 }
@@ -138,4 +164,8 @@ object AnyValEncoderSpec {
   case class NonAnyVal(value: String)
 
   case class Test[K](id: String, key: K)
+
+  case class NestedLineUpdate(lineIndex: Int, sourceBillId: Foo)
+
+  case class NestedRepairGroup[K](key: K, updates: List[NestedLineUpdate])
 }
