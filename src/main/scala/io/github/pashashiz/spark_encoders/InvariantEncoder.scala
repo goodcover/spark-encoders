@@ -47,7 +47,7 @@ class InvariantEncoder[A, B](
       functionName = "map",
       dataType = invEncoder.jvmRepr,
       arguments = Seq(inputPath),
-      returnNullable = false)
+      returnNullable = isValueClass)
     invEncoder.toCatalyst(converted)
   }
 

@@ -1,5 +1,5 @@
 inThisBuild(List(
-  ThisBuild / scalaVersion := V.scala,
+  ThisBuild / scalaVersion := V.scala_3,
   ThisBuild / crossScalaVersions := V.scalaAll,
   organization := "com.goodcover.spark",
   homepage := Some(url("https://github.com/pashashiz")),

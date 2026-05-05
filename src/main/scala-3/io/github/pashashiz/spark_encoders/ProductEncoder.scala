@@ -9,9 +9,10 @@ import io.github.pashashiz.spark_encoders.expressions.ObjectInstance
 import scala.reflect.ClassTag
 
 object ProductEncoder:
-  /** Recursively make all nested struct fields nullable for UpCast compatibility.
-    * Spark stores nested structs as nullable by default, so when reading back,
-    * we need the target schema to accept nullable struct fields. */
+  /** Recursively make all nested struct fields nullable for UpCast compatibility. Spark stores
+    * nested structs as nullable by default, so when reading back, we need the target schema to
+    * accept nullable struct fields.
+    */
   def makeNullable(dt: DataType): DataType = dt match {
     case st: StructType =>
       StructType(st.fields.map { f =>
@@ -19,7 +20,6 @@ object ProductEncoder:
       })
     case other => other
   }
-
 
 class CaseObjectEncoder[A: ClassTag] extends TypedEncoder[A] {
 
@@ -38,6 +38,14 @@ class CaseClassEncoder[A: ClassTag](
     labels: List[String],
     encoders: => List[TypedEncoder[?]]) extends TypedEncoder[A] {
 
+  private def isValueClassEncoder(encoder: TypedEncoder[?]): Boolean = encoder match {
+    case inv: InvariantEncoder[?, ?] => inv.isValueClass
+    case _                           => false
+  }
+
+  private def fieldReturnType(label: String): Class[?] =
+    runtimeClass.getMethod(label).getReturnType
+
   override def catalystRepr: DataType = {
     val fields = labels.zip(encoders).map {
       case (label, encoder) =>
@@ -54,12 +62,19 @@ class CaseClassEncoder[A: ClassTag](
     val nameExprs = labels.map(label => Literal(label))
     val valueExprs = labels.zip(encoders).map {
       case (label, encoder) =>
+        val returnType = fieldReturnType(label)
+        val fieldAccessRepr =
+          if (isValueClassEncoder(encoder) && returnType == classOf[Object]) {
+            encoder.jvmRepr
+          } else {
+            encoder.fieldAccessJvmRepr
+          }
         val fieldPath = Invoke(
           // set KnownNotNull since there is IsNull check SPARK-26730
           targetObject = KnownNotNull(path),
           functionName = label,
           // Use fieldAccessJvmRepr to handle value class erasure
-          dataType = encoder.fieldAccessJvmRepr,
+          dataType = fieldAccessRepr,
           arguments = Nil,
           // this is required to property generate NPE if result is null
           returnNullable = true)
@@ -85,7 +100,14 @@ class CaseClassEncoder[A: ClassTag](
         // we do not accept null values in Product types,
         // nullable fields should use Option instead
         // Use fromCatalystForField to handle value class erasure in constructor args
-        Shim.assertNotNull(encoder.fromCatalystForField(paramExpr), Seq(label))
+        val returnType = fieldReturnType(label)
+        val decoded =
+          if (isValueClassEncoder(encoder) && returnType == classOf[Object]) {
+            encoder.fromCatalyst(paramExpr)
+          } else {
+            encoder.fromCatalystForField(paramExpr)
+          }
+        Shim.assertNotNull(decoded, Seq(label))
     }
     val newExpr = NewInstance(
       cls = runtimeClass,
