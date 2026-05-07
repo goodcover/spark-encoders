@@ -4,8 +4,9 @@ import org.apache.spark.sql.Encoder
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, StaticInvoke}
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, Expression}
-import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.catalyst.expressions.{BoundReference, CheckOverflow, Expression}
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.types.{DataType, DecimalType}
 
 import scala.util.Try
 
@@ -49,6 +50,9 @@ object Shim {
         isDeterministic)
     }
   }
+
+  def checkOverflow(child: Expression, dataType: DecimalType): Expression =
+    CheckOverflow(child, dataType, !SQLConf.get.ansiEnabled)
 
   /** Shim for ClosureCleaner.clean that handles different implementations across Spark versions.
     *

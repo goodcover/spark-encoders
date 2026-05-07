@@ -1,6 +1,6 @@
 package io.github.pashashiz.spark_encoders
 
-import io.github.pashashiz.spark_encoders.Shim.staticInvoke
+import io.github.pashashiz.spark_encoders.Shim.{checkOverflow, staticInvoke}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.objects.Invoke
 import org.apache.spark.sql.types._
@@ -44,18 +44,30 @@ case object FloatEncoder extends PrimitiveEncoder[Float](FloatType)
 case object DoubleEncoder extends PrimitiveEncoder[Double](DoubleType)
 case object BinaryEncoder extends PrimitiveEncoder[Array[Byte]](BinaryType)
 
+private object DecimalSerialization {
+  def toCatalyst(path: Expression, dataType: DecimalType): Expression =
+    checkOverflow(
+      staticInvoke(
+        Decimal.getClass,
+        dataType,
+        "apply",
+        path :: Nil,
+        returnNullable = false),
+      dataType)
+}
+
 case object BigDecimalEncoder extends TypedEncoder[BigDecimal] {
-  override def catalystRepr: DataType = DecimalType.SYSTEM_DEFAULT
+  override def catalystRepr: DecimalType = DecimalType.SYSTEM_DEFAULT
   override def toCatalyst(path: Expression): Expression =
-    staticInvoke(Decimal.getClass, catalystRepr, "apply", path :: Nil)
+    DecimalSerialization.toCatalyst(path, catalystRepr)
   override def fromCatalyst(path: Expression): Expression =
     Invoke(path, "toBigDecimal", jvmRepr)
 }
 
 case object JBigDecimalEncoder extends TypedEncoder[JBigDecimal] {
-  override def catalystRepr: DataType = DecimalType.SYSTEM_DEFAULT
+  override def catalystRepr: DecimalType = DecimalType.SYSTEM_DEFAULT
   override def toCatalyst(path: Expression): Expression =
-    staticInvoke(Decimal.getClass, catalystRepr, "apply", path :: Nil)
+    DecimalSerialization.toCatalyst(path, catalystRepr)
   override def fromCatalyst(path: Expression): Expression =
     Invoke(path, "toJavaBigDecimal", jvmRepr)
 }

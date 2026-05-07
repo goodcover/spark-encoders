@@ -6,8 +6,9 @@ import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import scala.annotation.nowarn
 import org.apache.spark.sql.catalyst.encoders.{AgnosticEncoder, AgnosticExpressionPathEncoder, ExpressionEncoder}
 import org.apache.spark.sql.catalyst.expressions.objects.{AssertNotNull, StaticInvoke}
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, Expression}
-import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.catalyst.expressions.{BoundReference, CheckOverflow, Expression}
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.types.{DataType, DecimalType, StructType}
 
 import scala.reflect.ClassTag
 
@@ -31,6 +32,9 @@ object Shim {
       returnNullable = Boolean.box(returnNullable),
       isDeterministic = Boolean.box(isDeterministic),
       scalarFunction = Option.empty)
+
+  def checkOverflow(child: Expression, dataType: DecimalType): Expression =
+    CheckOverflow(child, dataType, !SQLConf.get.ansiEnabled)
 
   /** SparkClosureCleaner has private access so use reflection */
   def cleanClosure(

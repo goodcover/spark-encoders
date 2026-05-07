@@ -1,6 +1,6 @@
 package io.github.pashashiz.spark_encoders
 
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, sum}
 import org.apache.spark.sql.types._
 import org.scalatest.Inside.inside
 
@@ -84,6 +84,28 @@ class TypedEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers with
 
       "support Java BigDecimal" in {
         new JBigDecimal("1943784783.989793879489340000") should haveTypedEncoder[JBigDecimal]()
+      }
+
+      "normalize BigDecimal values before aggregation" in {
+        val input = BigDecimal("1.2345678901234567894")
+        val total = spark
+          .createDataset(List.fill(2)(Container(input)))
+          .agg(sum(col("value")).as("total"))
+          .head()
+          .getDecimal(0)
+
+        total shouldBe new JBigDecimal("2.469135780246913578")
+      }
+
+      "normalize Java BigDecimal values before aggregation" in {
+        val input = new JBigDecimal("1.2345678901234567894")
+        val total = spark
+          .createDataset(List.fill(2)(Container(input)))
+          .agg(sum(col("value")).as("total"))
+          .head()
+          .getDecimal(0)
+
+        total shouldBe new JBigDecimal("2.469135780246913578")
       }
 
       "support BigInt" in {
