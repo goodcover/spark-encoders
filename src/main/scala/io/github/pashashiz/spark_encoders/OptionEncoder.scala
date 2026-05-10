@@ -17,8 +17,9 @@ case class OptionEncoder[A]()(implicit inner: TypedEncoder[A]) extends TypedEnco
     // instead of IntegerType which is translated to int
     val optionType = ObjectType(Types.javaBoxedType(inner.jvmRepr))
     val unwrapped = UnwrapOption(optionType, path)
-    // note: unboxed is noop for objects
-    val unboxed = Types.unbox(unwrapped, catalystRepr)
+    // note: unboxed is noop for objects; use jvmRepr here so value classes stay boxed
+    // and their own encoder can extract the underlying field.
+    val unboxed = Types.unbox(unwrapped, inner.jvmRepr)
     // note: we do not add IfNull expression cause usually inner Expression
     // should tolerate null input argument and should short circuit and return null already (such as Invoke)
     // yet if we hit the case when that is not true, we might add it here

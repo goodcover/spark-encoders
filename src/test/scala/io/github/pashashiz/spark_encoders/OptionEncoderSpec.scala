@@ -1,5 +1,7 @@
 package io.github.pashashiz.spark_encoders
 
+import io.github.pashashiz.spark_encoders.OptionEncoderSpec.{ContainedLongAnyVal, LongAnyVal}
+
 import org.apache.spark.sql.types.Decimal
 import org.apache.spark.sql.types.DecimalType.SYSTEM_DEFAULT
 
@@ -63,6 +65,20 @@ class OptionEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers wit
         Option(1343095043994444L) should haveTypedEncoder[Option[Long]]()
         Option(Long.MaxValue) should haveTypedEncoder[Option[Long]]()
         Option.empty[Long] should haveTypedEncoder[Option[Long]]()
+      }
+
+      "support Long-backed AnyVal wrapped in Option" in {
+        implicit val longAnyValEncoder: TypedEncoder[LongAnyVal] =
+          TypedEncoder.xmap[LongAnyVal, Long](_.value)(LongAnyVal(_))
+        implicit val containedLongAnyValEncoder: TypedEncoder[ContainedLongAnyVal] =
+          TypedEncoder.derive[ContainedLongAnyVal]
+
+        Option(LongAnyVal(1343095043994444L)) should haveTypedEncoder[Option[LongAnyVal]]()
+        Option.empty[LongAnyVal] should haveTypedEncoder[Option[LongAnyVal]]()
+
+        ContainedLongAnyVal(Some(LongAnyVal(1343095043994444L))) should
+          haveTypedEncoder[ContainedLongAnyVal]()
+        ContainedLongAnyVal(None) should haveTypedEncoder[ContainedLongAnyVal]()
       }
 
       "support Float wrapped in Option" in {
@@ -184,4 +200,9 @@ class OptionEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers wit
       }
     }
   }
+}
+
+object OptionEncoderSpec {
+  case class LongAnyVal(value: Long) extends AnyVal
+  case class ContainedLongAnyVal(value: Option[LongAnyVal])
 }
