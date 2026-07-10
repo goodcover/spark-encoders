@@ -176,6 +176,24 @@ class TypedEncoderSpec extends SparkAnyWordSpec() with TypedEncoderMatchers with
         SimpleUser("Pablo", 34) should haveTypedEncoder[SimpleUser]()
       }
 
+      "support escaped field names" in {
+        val value = EscapedFieldNames(
+          BigDecimal("12.34"),
+          BigDecimal("23.45"),
+          BigDecimal("34.56"),
+          BigDecimal("45.67"),
+          BigDecimal("56.78"))
+        val schema = StructType(Seq(
+          StructField("Acct Current", DecimalType(38, 18), nullable = false),
+          StructField("(0-30)", DecimalType(38, 18), nullable = false),
+          StructField("(31-60)", DecimalType(38, 18), nullable = false),
+          StructField("(61-90)", DecimalType(38, 18), nullable = false),
+          StructField("(91+)", DecimalType(38, 18), nullable = false)))
+
+        TypedEncoder[EscapedFieldNames].catalystRepr shouldBe schema
+        value should haveTypedEncoder[EscapedFieldNames]()
+      }
+
       "support some optional fields" in {
         val schema = StructType(Seq(
           StructField("name", StringType, nullable = false),

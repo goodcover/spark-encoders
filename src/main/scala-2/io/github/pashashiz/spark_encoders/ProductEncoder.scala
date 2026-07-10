@@ -7,7 +7,7 @@ import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance}
 import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, Expression, If, IsNull, KnownNotNull, Literal, UpCast}
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, Metadata, ObjectType, StructField, StructType}
 
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, NameTransformer}
 
 object ProductEncoder {
 
@@ -101,8 +101,10 @@ class CaseClassEncoder[A: ClassTag](ctx: CaseClass[TypedEncoder, A]) extends Typ
     case _                            => false
   }
 
+  private def accessorName(label: String): String = NameTransformer.encode(label)
+
   private def fieldReturnType(label: String): Class[_] =
-    runtimeClass.getMethod(label).getReturnType
+    runtimeClass.getMethod(accessorName(label)).getReturnType
 
   override def catalystRepr: DataType = {
     val fields = ctx.parameters.map { field =>
@@ -129,7 +131,7 @@ class CaseClassEncoder[A: ClassTag](ctx: CaseClass[TypedEncoder, A]) extends Typ
       val fieldPath = Invoke(
         // set KnownNotNull since there is IsNull check SPARK-26730
         targetObject = KnownNotNull(path),
-        functionName = param.label,
+        functionName = accessorName(param.label),
         // Use fieldAccessJvmRepr to handle value class erasure
         dataType = fieldAccessRepr,
         arguments = Nil,

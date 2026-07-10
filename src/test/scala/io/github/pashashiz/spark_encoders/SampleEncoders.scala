@@ -7,6 +7,12 @@ import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, SQLUserDefin
 case class Container[A](value: A)
 
 case class SimpleUser(name: String, age: Int)
+case class EscapedFieldNames(
+    `Acct Current`: BigDecimal,
+    `(0-30)`: BigDecimal,
+    `(31-60)`: BigDecimal,
+    `(61-90)`: BigDecimal,
+    `(91+)`: BigDecimal)
 case class UserOptAge(name: String, age: Option[Int])
 case class UserOptName(name: Option[String], age: Int)
 case class UserOptBoth(name: Option[String], age: Option[Int])
@@ -104,6 +110,8 @@ trait SampleEncoders {
   implicit def containerEncoder[A: TypedEncoder]: TypedEncoder[Container[A]] =
     derive[Container[A]]
   implicit def simpleUserEncoder: TypedEncoder[SimpleUser] = derive[SimpleUser]
+  implicit def escapedFieldNamesEncoder: TypedEncoder[EscapedFieldNames] =
+    derive[EscapedFieldNames]
   implicit def simpleUserAsTupleEncoder: TypedEncoder[(String, Int)] =
     derive[(String, Int)]
   implicit def userOptAgeEncoder: TypedEncoder[UserOptAge] = derive[UserOptAge]

@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, Expression,
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, Metadata, StructField, StructType}
 import io.github.pashashiz.spark_encoders.expressions.ObjectInstance
 
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, NameTransformer}
 
 object ProductEncoder:
   /** Recursively relax nested nullability for UpCast compatibility. Spark stores nested structs as
@@ -46,8 +46,10 @@ class CaseClassEncoder[A: ClassTag](
     case _                           => false
   }
 
+  private def accessorName(label: String): String = NameTransformer.encode(label)
+
   private def fieldReturnType(label: String): Class[?] =
-    runtimeClass.getMethod(label).getReturnType
+    runtimeClass.getMethod(accessorName(label)).getReturnType
 
   override def catalystRepr: DataType = {
     val fields = labels.zip(encoders).map {
@@ -75,7 +77,7 @@ class CaseClassEncoder[A: ClassTag](
         val fieldPath = Invoke(
           // set KnownNotNull since there is IsNull check SPARK-26730
           targetObject = KnownNotNull(path),
-          functionName = label,
+          functionName = accessorName(label),
           // Use fieldAccessJvmRepr to handle value class erasure
           dataType = fieldAccessRepr,
           arguments = Nil,
