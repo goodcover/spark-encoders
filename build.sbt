@@ -1,3 +1,5 @@
+credentials += Credentials(sys.env.getOrElse("REPO_REALM", ""), sys.env.getOrElse("REPO_HOST", ""), sys.env.getOrElse("REPO_USER", ""), sys.env.getOrElse("REPO_PASS", ""))
+
 inThisBuild(List(
   ThisBuild / scalaVersion := V.scala_3,
   ThisBuild / crossScalaVersions := V.scalaAll,
