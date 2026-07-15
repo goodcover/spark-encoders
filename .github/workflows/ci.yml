@@ -43,4 +43,4 @@ jobs:
       - name: Test
         run: sbt "+ test"
         env:
-          REPO_URL: ""
+          REPO_URL: ${{ secrets.REPO_URL }}
