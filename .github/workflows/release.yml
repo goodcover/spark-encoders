@@ -1,13 +1,9 @@
 name: Publish
 
-#on:
-#  push:
-#    tags:
-#      - "v*"
-# Temporary for testing
 on:
   push:
-    branches: [ "publish", "main" ]
+    tags:
+      - "v*"
 
 permissions:
   contents: read
