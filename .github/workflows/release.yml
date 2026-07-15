@@ -1,0 +1,55 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Spark ${{ matrix.spark }} / Scala ${{ matrix.scala }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - java: 8
+            scala: "2.13.16"
+            spark: "3.5.7"
+          - java: 8
+            scala: "3.3.6"
+            spark: "3.5.7"
+          - java: 17
+            scala: "2.13.16"
+            spark: "4.0.1"
+          - java: 17
+            scala: "3.3.6"
+            spark: "4.0.1"
+    runs-on: ubuntu-22.04
+    env:
+      # Each matrix job publishes only its selected Scala version. Without this,
+      # ci-release runs +publishSigned and duplicates work across the matrix.
+      CI_RELEASE: publishSigned
+      SPARK_VERSION: ${{ matrix.spark }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Cache SBT dependencies
+        uses: coursier/cache-action@v6
+      - name: Set up Scala with SBT
+        uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:${{ matrix.java }}
+          apps: sbt
+      - name: Publish
+        run: sbt -v "++${{ matrix.scala }}" publishSigned
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          COURSIER_CREDENTIALS: ${{ secrets.REPO_COURSIER_CREDENTIALS }}

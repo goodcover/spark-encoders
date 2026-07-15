@@ -1,6 +1,7 @@
 inThisBuild(List(
   ThisBuild / scalaVersion := V.scala_3,
   ThisBuild / crossScalaVersions := V.scalaAll,
+  ThisBuild / publishTo := Some("Goodcover" at sys.env("REPO_URL")),
   organization := "com.goodcover.spark",
   homepage := Some(url("https://github.com/pashashiz")),
   licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -9,9 +10,7 @@ inThisBuild(List(
       id = "pashashiz",
       name = "Pavlo Pohrebnyi",
       email = "pogrebnij@gmail.com",
-      url = url("https://github.com/pashashiz"))),
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local"))
+      url = url("https://github.com/pashashiz")))))
 
 lazy val providedAsRunnable = Seq(
   Compile / run := Defaults
