@@ -50,6 +50,7 @@ jobs:
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          CI_SONATYPE_RELEASE: "about"
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           COURSIER_CREDENTIALS: ${{ secrets.REPO_COURSIER_CREDENTIALS }}
