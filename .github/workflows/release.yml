@@ -53,3 +53,4 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           COURSIER_CREDENTIALS: ${{ secrets.REPO_COURSIER_CREDENTIALS }}
+          REPO_URL: ${{ secrets.REPO_URL }}
